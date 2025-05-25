@@ -107,4 +107,14 @@
     opacity: 1;
     transform: translateY(0);
   }
-} 
+}
+
+.container {
+  max-width: 400px;
+  margin: 2rem auto;
+  padding: 2rem;
+}
+
+.formItem {
+  margin-bottom: 1.5rem;
+}

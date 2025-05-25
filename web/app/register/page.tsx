@@ -21,7 +21,7 @@ export default function RegisterPage() {
       // 调用注册API
       const response = await register(values.username, values.email, values.password);
       
-      if (response.item1) {
+      if (response.success) {
         // 注册成功
         message.success('注册成功，即将跳转到登录页面...');
         
@@ -31,7 +31,7 @@ export default function RegisterPage() {
         }, 1500);
       } else {
         // 注册失败
-        message.error(response.item2 || '注册失败，请重试');
+        message.error(response.message || '注册失败，请重试');
       }
     } catch (error) {
       console.error('注册错误:', error);

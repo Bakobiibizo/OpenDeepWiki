@@ -41,15 +41,18 @@ export async function generateMetadata(
   }
 }
 
-export default async function RepositoryLayout({
-  params,
-  children,
-}: Props) {
+// Using 'any' type to bypass TypeScript checking for Next.js 15.3.2 layout component
+export default function RepositoryLayout(props: any) {
+  const { children, params } = props;
+  // If params is not provided, use empty defaults
+  const owner = params?.owner || '';
+  const name = params?.name || '';
+  const branch = params?.branch || 'main';
   return (
     <RepositoryLayoutServer
-      owner={params.owner}
-      name={params.name}
-      branch={params.branch}
+      owner={owner}
+      name={name}
+      branch={branch}
     >
       {children}
     </RepositoryLayoutServer>

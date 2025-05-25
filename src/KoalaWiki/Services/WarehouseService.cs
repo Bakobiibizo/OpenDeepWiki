@@ -1,4 +1,4 @@
-﻿using System.IO.Compression;
+using System.IO.Compression;
 using System.Text;
 using FastService;
 using KoalaWiki.Core.DataAccess;
@@ -292,9 +292,11 @@ public class WarehouseService(IKoalaWikiContext access, IMapper mapper, GitRepos
                                 x.Name == repositoryName)
                     .FirstOrDefaultAsync();
 
+                // Allow overwriting existing repositories
                 if (branch != null)
                 {
-                    throw new Exception("该分支已经存在");
+                    // Instead of throwing an error, log that we're overwriting an existing repository
+                    Console.WriteLine($"Repository already exists: {organization}/{repositoryName}/{input.Branch} - Will be overwritten.");
                 }
             }
 

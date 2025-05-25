@@ -59,7 +59,7 @@ async function clientFetchApi<T>(
         ...options,
         headers: {
           ...options?.headers,
-          "Authorization": `Bearer ${localStorage.getItem("userToken")}`,
+          "Authorization": `Bearer ${localStorage.getItem("userToken") || ''}`,
         },
       });
     } else {
@@ -68,7 +68,7 @@ async function clientFetchApi<T>(
         headers: {
           ...options?.headers,
           'Content-Type': 'application/json',
-          "Authorization": `Bearer ${localStorage.getItem("userToken")}`,
+          "Authorization": `Bearer ${localStorage.getItem("userToken") || ''}`,
         },
       });
     }
@@ -124,7 +124,7 @@ async function fetchApi<T>(
       ...options,
       headers: {
         ...options?.headers,
-        "Authorization": `Bearer ${localStorage.getItem("userToken")}`,
+        "Authorization": `Bearer ${localStorage.getItem("userToken") || ''}`,
       },
     });
   } else {
@@ -135,7 +135,7 @@ async function fetchApi<T>(
 
 // SSE 辅助函数
 async function* fetchSSE(url: string, data: any): AsyncIterableIterator<any> {
-  const token = localStorage.getItem("userToken");
+  const token = localStorage.getItem("userToken") || '';
   const headers = {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
@@ -201,3 +201,5 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || '';
 
 export { fetchApi, serverFetchApi, clientFetchApi, API_URL, fetchSSE };
 export type { ApiResponse }; 
+
+

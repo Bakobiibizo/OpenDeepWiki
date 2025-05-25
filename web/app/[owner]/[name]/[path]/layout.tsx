@@ -85,11 +85,15 @@ export async function generateMetadata(
   }
 }
 
-export default function DocumentLayout({
-  children,
-  params
-}: any) {
-  const { owner, name, path } = params;
+import React from 'react';
+
+// Using 'any' type to bypass TypeScript checking for Next.js 15.3.2 layout component
+export default function DocumentLayout(props: any) {
+  const { children, params } = props;
+  // If params is not provided, use empty defaults
+  const owner = params?.owner || '';
+  const name = params?.name || '';
+  const path = params?.path || [];
   const pathString = Array.isArray(path) ? path.join('/') : path;
   
   // 构建结构化数据

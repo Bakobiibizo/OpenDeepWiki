@@ -1,4 +1,4 @@
-﻿using KoalaWiki.Core.DataAccess;
+using KoalaWiki.Core.DataAccess;
 using KoalaWiki.Domains;
 using KoalaWiki.Entities;
 using KoalaWiki.Git;
@@ -40,6 +40,19 @@ public class WarehouseTask(
 
                 if (value?.Type?.Equals("git", StringComparison.OrdinalIgnoreCase) == true)
                 {
+                    // 删除可能存在的相同仓库的文档记录
+                    var existingDocuments = await dbContext.Documents
+                        .Where(d => d.WarehouseId != value.Id && 
+                               dbContext.Warehouses.Any(w => w.Id == d.WarehouseId && w.Address == value.Address && w.Branch == value.Branch))
+                        .ToListAsync(stoppingToken);
+                    
+                    if (existingDocuments.Any())
+                    {
+                        logger.LogInformation("删除现有的相同仓库文档记录，数量：{Count}", existingDocuments.Count);
+                        dbContext.Documents.RemoveRange(existingDocuments);
+                        await dbContext.SaveChangesAsync(stoppingToken);
+                    }
+                    
                     // 先拉取仓库
                     logger.LogInformation("开始拉取仓库：{Address}", value.Address);
                     var info = GitService.CloneRepository(value.Address, value?.GitUserName ?? string.Empty,

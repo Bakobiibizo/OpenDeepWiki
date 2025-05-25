@@ -1,6 +1,10 @@
-﻿FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 USER root
 WORKDIR /app
+
+# Install Git
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
 EXPOSE 8080
 EXPOSE 8081
 
@@ -22,6 +26,12 @@ RUN dotnet publish "./KoalaWiki.csproj" -c $BUILD_CONFIGURATION -a $TARGETARCH -
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "KoalaWiki.dll"]
+
+# Copy entry point script and make it executable
+COPY entry_point.sh /app/entry_point.sh
+RUN chmod +x /app/entry_point.sh
+
+# Run the entry point script
+ENTRYPOINT ["/app/entry_point.sh"]
 
  

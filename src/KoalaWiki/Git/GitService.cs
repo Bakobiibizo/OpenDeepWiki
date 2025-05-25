@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using LibGit2Sharp;
 
 namespace KoalaWiki.Git;
@@ -14,8 +14,13 @@ public class GitService
         var organization = segments[1].Trim('/');
         var repositoryName = segments[2].Trim('/').Replace(".git", "");
 
-        // 拼接本地路径，默认使用"/repositories"，
-        var repositoryPath = Path.Combine(Constant.GitPath, organization, repositoryName);
+        // 使用更短的路径来避免文件名过长问题
+        // 使用组织名和仓库名的哈希值作为目录名
+        var orgHash = Math.Abs(organization.GetHashCode()).ToString().Substring(0, 4);
+        var repoHash = Math.Abs(repositoryName.GetHashCode()).ToString().Substring(0, 4);
+        
+        // 拼接本地路径，使用短路径
+        var repositoryPath = Path.Combine(Constant.GitPath, $"{orgHash}_{organization}", $"{repoHash}_{repositoryName}");
         return (repositoryPath, organization);
     }
 
@@ -100,108 +105,174 @@ public class GitService
         string password = "",
         [Description("分支")] string branch = "master")
     {
+        // 设置环境变量来处理长路径
+        Environment.SetEnvironmentVariable("GIT_LONGPATHS", "true");
+        
+        // 禁用符号链接以避免文件名过长错误
+        Environment.SetEnvironmentVariable("GIT_CONFIG_COUNT", "1");
+        Environment.SetEnvironmentVariable("GIT_CONFIG_KEY_0", "core.symlinks");
+        Environment.SetEnvironmentVariable("GIT_CONFIG_VALUE_0", "false");
+        
         var (localPath, organization) = GetRepositoryPath(repositoryUrl);
-
-        var cloneOptions = new CloneOptions
-        {
-            FetchOptions =
-            {
-                CertificateCheck = (_, _, _) => true,
-                Depth = 0,
-            },
-            BranchName = branch
-        };
-
         var names = repositoryUrl.Split('/');
-
         var repositoryName = names[^1].Replace(".git", "");
-
         localPath = Path.Combine(localPath, branch);
 
-        // 判断仓库是否已经存在
-        if (Directory.Exists(localPath))
+        // 强制删除并重新创建目录
+        try
         {
+            if (Directory.Exists(localPath))
+            {
+                Directory.Delete(localPath, true);
+            }
+            Directory.CreateDirectory(localPath);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to prepare repository directory: {ex.Message}");
+        }
+
+        // 创建克隆选项
+        var cloneOptions = new CloneOptions();
+        cloneOptions.BranchName = branch;
+        
+        // 设置FetchOptions
+        cloneOptions.FetchOptions.CertificateCheck = (_, _, _) => true;
+        cloneOptions.FetchOptions.Depth = 0;
+
+        // 设置认证信息（如果有）
+        if (!string.IsNullOrEmpty(userName))
+        {
+            cloneOptions.FetchOptions.CredentialsProvider = (_url, _user, _cred) =>
+                new UsernamePasswordCredentials
+                {
+                    Username = userName,
+                    Password = password
+                };
+        }
+
+        try
+        {
+            // 使用命令行直接克隆以禁用符号链接
+            var processStartInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "git",
+                Arguments = $"clone -c core.symlinks=false {repositoryUrl} {localPath} --branch {branch}",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            if (!string.IsNullOrEmpty(userName) && !string.IsNullOrEmpty(password))
+            {
+                // 如果有认证信息，将其添加到URL中
+                var uri = new Uri(repositoryUrl);
+                var userInfo = Uri.EscapeDataString(userName) + ":" + Uri.EscapeDataString(password);
+                var authenticatedUrl = $"{uri.Scheme}://{userInfo}@{uri.Host}{uri.PathAndQuery}";
+                processStartInfo.Arguments = $"clone -c core.symlinks=false {authenticatedUrl} {localPath} --branch {branch}";
+            }
+
             try
             {
-                // 获取当前仓库的git分支
-                using var repo = new Repository(localPath);
+                var process = System.Diagnostics.Process.Start(processStartInfo);
+                process.WaitForExit();
 
-                var branchName = repo.Head.FriendlyName;
-                // 获取当前仓库的git版本
-                var version = repo.Head.Tip.Sha;
-                // 获取当前仓库的git提交时间
-                var commitTime = repo.Head.Tip.Committer.When;
-                // 获取当前仓库的git提交人
-                var commitAuthor = repo.Head.Tip.Committer.Name;
-                // 获取当前仓库的git提交信息
-                var commitMessage = repo.Head.Tip.Message;
-
-                return new GitRepositoryInfo(localPath, repositoryName, organization, branchName, commitTime.ToString(),
-                    commitAuthor, commitMessage, version);
-            }
-            catch (Exception e)
-            {
-                // 删除目录以后在尝试一次
-                Directory.Delete(localPath, true);
-                var str = Repository.Clone(repositoryUrl, localPath, cloneOptions);
-                using var repo = new Repository(localPath);
-
-                var branchName = repo.Head.FriendlyName;
-                // 获取当前仓库的git版本
-                var version = repo.Head.Tip.Sha;
-                // 获取当前仓库的git提交时间
-                var commitTime = repo.Head.Tip.Committer.When;
-                // 获取当前仓库的git提交人
-                var commitAuthor = repo.Head.Tip.Committer.Name;
-                // 获取当前仓库的git提交信息
-                var commitMessage = repo.Head.Tip.Message;
-
-                return new GitRepositoryInfo(localPath, repositoryName, organization, branchName, commitTime.ToString(),
-                    commitAuthor, commitMessage, version);
-            }
-        }
-        else
-        {
-            if (string.IsNullOrEmpty(userName))
-            {
-                var str = Repository.Clone(repositoryUrl, localPath, cloneOptions);
-            }
-            else
-            {
-                var info = Directory.CreateDirectory(localPath);
-
-                cloneOptions = new CloneOptions
+                if (process.ExitCode != 0)
                 {
-                    FetchOptions =
-                    {
-                        Depth = 0,
-                        CertificateCheck = (_, _, _) => true,
-                        CredentialsProvider = (_url, _user, _cred) =>
-                            new UsernamePasswordCredentials
-                            {
-                                Username = userName, // 对于Token认证，Username可以随便填
-                                Password = password
-                            }
-                    }
-                };
-
+                    var error = process.StandardError.ReadToEnd();
+                    Console.WriteLine($"Git clone command failed: {error}");
+                    // 如果命令行克隆失败，尝试使用 LibGit2Sharp
+                    Repository.Clone(repositoryUrl, localPath, cloneOptions);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to start git process: {ex.Message}");
+                // 如果命令行克隆失败，尝试使用 LibGit2Sharp
                 Repository.Clone(repositoryUrl, localPath, cloneOptions);
             }
 
-            // 获取当前仓库的git分支
+            // 获取仓库信息
             using var repo = new Repository(localPath);
             var branchName = repo.Head.FriendlyName;
-            // 获取当前仓库的git版本
             var version = repo.Head.Tip.Sha;
-            // 获取当前仓库的git提交时间
             var commitTime = repo.Head.Tip.Committer.When;
-            // 获取当前仓库的git提交人
             var commitAuthor = repo.Head.Tip.Committer.Name;
-            // 获取当前仓库的git提交信息
             var commitMessage = repo.Head.Tip.Message;
 
             return new GitRepositoryInfo(localPath, repositoryName, organization, branchName, commitTime.ToString(),
                 commitAuthor, commitMessage, version);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Error cloning repository: {e.Message}");
+            
+            // 尝试再次克隆
+            try
+            {
+                // 确保目录干净
+                if (Directory.Exists(localPath))
+                {
+                    Directory.Delete(localPath, true);
+                }
+                Directory.CreateDirectory(localPath);
+                
+                // 再次使用命令行克隆
+                var processStartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "git",
+                    Arguments = $"clone -c core.symlinks=false {repositoryUrl} {localPath} --branch {branch}",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                if (!string.IsNullOrEmpty(userName) && !string.IsNullOrEmpty(password))
+                {
+                    // 如果有认证信息，将其添加到URL中
+                    var uri = new Uri(repositoryUrl);
+                    var userInfo = Uri.EscapeDataString(userName) + ":" + Uri.EscapeDataString(password);
+                    var authenticatedUrl = $"{uri.Scheme}://{userInfo}@{uri.Host}{uri.PathAndQuery}";
+                    processStartInfo.Arguments = $"clone -c core.symlinks=false {authenticatedUrl} {localPath} --branch {branch}";
+                }
+
+                try
+                {
+                    var process = System.Diagnostics.Process.Start(processStartInfo);
+                    process.WaitForExit();
+
+                    if (process.ExitCode != 0)
+                    {
+                        var error = process.StandardError.ReadToEnd();
+                        Console.WriteLine($"Second Git clone command failed: {error}");
+                        // 如果命令行克隆失败，尝试使用 LibGit2Sharp
+                        Repository.Clone(repositoryUrl, localPath, cloneOptions);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to start second git process: {ex.Message}");
+                    // 如果命令行克隆失败，尝试使用 LibGit2Sharp
+                    Repository.Clone(repositoryUrl, localPath, cloneOptions);
+                }
+                
+                using var repo = new Repository(localPath);
+                var branchName = repo.Head.FriendlyName;
+                var version = repo.Head.Tip.Sha;
+                var commitTime = repo.Head.Tip.Committer.When;
+                var commitAuthor = repo.Head.Tip.Committer.Name;
+                var commitMessage = repo.Head.Tip.Message;
+
+                return new GitRepositoryInfo(localPath, repositoryName, organization, branchName, commitTime.ToString(),
+                    commitAuthor, commitMessage, version);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed second attempt to clone repository: {ex.Message}");
+                throw; // 向上抛出异常
+            }
         }
     }
 }

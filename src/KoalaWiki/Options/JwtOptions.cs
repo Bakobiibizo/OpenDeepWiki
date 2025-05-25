@@ -43,33 +43,54 @@ public class JwtOptions
     /// </summary>
     public SymmetricSecurityKey GetSymmetricSecurityKey()
     {
-        return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Secret));
+        // Change from UTF8 encoding to Base64 decoding
+        return new SymmetricSecurityKey(Convert.FromBase64String(Secret));
     }
+    
+    /// <summary>
+    /// 安全密钥
+    /// </summary>
+    public SymmetricSecurityKey SecurityKey => new(Encoding.UTF8.GetBytes(Secret));
+
+    /// <summary>
+    /// 签名凭据
+    /// </summary>
+    public SigningCredentials SigningCredentials => new(SecurityKey, SecurityAlgorithms.HmacSha512);
     
     /// <summary>
     /// 初始化配置
     /// </summary>
-    public static JwtOptions InitConfig(IConfiguration configuration)
+// In JwtOptions.cs
+public static JwtOptions InitConfig(IConfiguration configuration)
+{
+    var options = configuration.GetSection(Name).Get<JwtOptions>() ?? new JwtOptions();
+    
+    if (string.IsNullOrEmpty(options.Secret))
     {
-        var options = configuration.GetSection(Name).Get<JwtOptions>() ?? new JwtOptions();
-        
-        // 如果配置中没有设置密钥，则生成一个随机密钥
-        if (string.IsNullOrEmpty(options.Secret))
-        {
-            options.Secret = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
-        }
-        
-        // 如果没有设置颁发者和接收者，则使用默认值
-        if (string.IsNullOrEmpty(options.Issuer))
-        {
-            options.Issuer = "KoalaWiki";
-        }
-        
-        if (string.IsNullOrEmpty(options.Audience))
-        {
-            options.Audience = "KoalaWiki";
-        }
-        
-        return options;
+        // Generate new secure key
+        var key = new byte[32];
+        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+        rng.GetBytes(key);
+        options.Secret = Convert.ToBase64String(key);
     }
-} 
+    else 
+    {
+        // Validate existing secret
+        try
+        {
+            Convert.FromBase64String(options.Secret);
+        }
+        catch
+        {
+            // Regenerate if invalid
+            var key = new byte[32];
+            using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+            rng.GetBytes(key);
+            options.Secret = Convert.ToBase64String(key);
+        }
+        
+        
+    }
+    return options;
+}
+}

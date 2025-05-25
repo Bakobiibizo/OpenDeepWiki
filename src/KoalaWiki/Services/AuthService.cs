@@ -315,7 +315,7 @@ public class AuthService(
                 ValidateAudience = true,
                 ValidAudience = jwtOptions.Audience,
                 ValidateLifetime = true,
-                ClockSkew = TimeSpan.Zero
+                ClockSkew = TimeSpan.FromMinutes(5) // Allow 5 minutes clock skew
             };
 
             try
@@ -365,12 +365,13 @@ public class AuthService(
 
         var key = jwtOptions.GetSymmetricSecurityKey();
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var expires = DateTime.Now.AddMinutes(jwtOptions.ExpireMinutes);
+        var expires = DateTime.UtcNow.AddMinutes(jwtOptions.ExpireMinutes);
 
         var token = new JwtSecurityToken(
             issuer: jwtOptions.Issuer,
             audience: jwtOptions.Audience,
             claims: claims,
+            notBefore: DateTime.UtcNow,
             expires: expires,
             signingCredentials: creds
         );
@@ -392,7 +393,7 @@ public class AuthService(
 
         var key = jwtOptions.GetSymmetricSecurityKey();
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var expires = DateTime.Now.AddMinutes(jwtOptions.RefreshExpireMinutes);
+        var expires = DateTime.UtcNow.AddMinutes(jwtOptions.RefreshExpireMinutes);
 
         var token = new JwtSecurityToken(
             issuer: jwtOptions.Issuer,

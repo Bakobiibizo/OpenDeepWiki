@@ -1,55 +1,63 @@
 'use client';
 import { API_URL } from "./api";
 
-// 认证服务
+// Authentication service
 interface LoginResponse {
-  item1: boolean;  // 是否成功
-  item2: string;   // 消息
-  item3: string;   // token
-  item4: any;      // 用户信息
-  item5: string;   // refreshToken
+  success: boolean;  // Whether the login was successful
+  message: string;   // Login message
+  token: string;   // Access token (renamed from accessToken to match login page)
+  user: any;      // User information
+  refreshToken: string;   // Refresh token
 }
 
 interface RegisterResponse {
-  item1: boolean;  // 是否成功
-  item2: string;   // 消息
+  success: boolean;  // Whether the registration was successful
+  message: string;   // Registration message
 }
 
 interface RefreshTokenResponse {
-  item1: boolean;  // 是否成功
-  item2: string;   // 消息
-  item3: string;   // 新token
-  item4: string;   // 新refreshToken
+  success: boolean;  // Whether the token refresh was successful
+  message: string;   // Token refresh message
+  newAccessToken: string;   // New access token
+  newRefreshToken: string;   // New refresh token
 }
 
-// 登录
-export const login = async (username: string, password: string): Promise<any> => {
+export const login = async (username: string, password: string): Promise<LoginResponse> => {
   try {
-    const response = await fetch(`${API_URL}/api/Auth/Login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
+    const response = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
+      body: JSON.stringify({ username, password }),
       headers: {
         'Content-Type': 'application/json',
       },
     });
-    
+
     if (!response.ok) {
-      throw new Error('登录请求失败');
+      throw new Error('Login request failed');
     }
+
+    const responseData = await response.json();
     
-    return await response.json();
-  } catch (error) {
-    console.error('登录错误:', error);
     return {
-      item1: false,
-      item2: error instanceof Error ? error.message : '登录失败',
-      item3: '',
-      item4: null,
-      item5: ''
+      success: true,
+      message: 'Login successful',
+      token: responseData.accessToken,
+      user: responseData.user,
+      refreshToken: responseData.refreshToken
+    };
+  } catch (error) {
+    console.error('Login error:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Login failed',
+      token: '',
+      user: null,
+      refreshToken: ''
     };
   }
 };
 
-// 注册
+// Registration
 export const register = async (username: string, email: string, password: string): Promise<RegisterResponse> => {
   try {
     const response = await fetch(`${API_URL}/api/Auth/Register?username=${encodeURIComponent(username)}&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`, {
@@ -60,20 +68,20 @@ export const register = async (username: string, email: string, password: string
     });
     
     if (!response.ok) {
-      throw new Error('注册请求失败');
+      throw new Error('Registration request failed');
     }
     
     return await response.json();
   } catch (error) {
-    console.error('注册错误:', error);
+    console.error('Registration error:', error);
     return {
-      item1: false,
-      item2: error instanceof Error ? error.message : '注册失败'
+      success: false,
+      message: error instanceof Error ? error.message : 'Registration failed'
     };
   }
 };
 
-// GitHub登录
+// GitHub login
 export const githubLogin = async (code: string): Promise<LoginResponse> => {
   try {
     const response = await fetch(`${API_URL}/api/Auth/GitHubLogin?code=${encodeURIComponent(code)}`, {
@@ -84,23 +92,23 @@ export const githubLogin = async (code: string): Promise<LoginResponse> => {
     });
     
     if (!response.ok) {
-      throw new Error('GitHub登录请求失败');
+      throw new Error('GitHub login request failed');
     }
     
     return await response.json();
   } catch (error) {
-    console.error('GitHub登录错误:', error);
+    console.error('GitHub login error:', error);
     return {
-      item1: false,
-      item2: error instanceof Error ? error.message : 'GitHub登录失败',
-      item3: '',
-      item4: null,
-      item5: ''
+      success: false,
+      message: error instanceof Error ? error.message : 'GitHub login failed',
+      token: '',
+      user: null,
+      refreshToken: ''
     };
   }
 };
 
-// Google登录
+// Google login
 export const googleLogin = async (idToken: string): Promise<LoginResponse> => {
   try {
     const response = await fetch(`${API_URL}/api/Auth/GoogleLogin?idToken=${encodeURIComponent(idToken)}`, {
@@ -111,23 +119,23 @@ export const googleLogin = async (idToken: string): Promise<LoginResponse> => {
     });
     
     if (!response.ok) {
-      throw new Error('Google登录请求失败');
+      throw new Error('Google login request failed');
     }
     
     return await response.json();
   } catch (error) {
-    console.error('Google登录错误:', error);
+    console.error('Google login error:', error);
     return {
-      item1: false,
-      item2: error instanceof Error ? error.message : 'Google登录失败',
-      item3: '',
-      item4: null,
-      item5: ''
+      success: false,
+      message: error instanceof Error ? error.message : 'Google login failed',
+      token: '',
+      user: null,
+      refreshToken: ''
     };
   }
 };
 
-// 刷新令牌
+// Refresh token
 export const refreshToken = async (refreshToken: string): Promise<RefreshTokenResponse> => {
   try {
     const response = await fetch(`${API_URL}/api/Auth/RefreshToken?refreshToken=${encodeURIComponent(refreshToken)}`, {
@@ -138,17 +146,17 @@ export const refreshToken = async (refreshToken: string): Promise<RefreshTokenRe
     });
     
     if (!response.ok) {
-      throw new Error('刷新令牌请求失败');
+      throw new Error('Token refresh request failed');
     }
     
     return await response.json();
   } catch (error) {
-    console.error('刷新令牌错误:', error);
+    console.error('Token refresh error:', error);
     return {
-      item1: false,
-      item2: error instanceof Error ? error.message : '刷新令牌失败',
-      item3: '',
-      item4: ''
+      success: false,
+      message: error instanceof Error ? error.message : 'Token refresh failed',
+      newAccessToken: '',
+      newRefreshToken: ''
     };
   }
 }; 

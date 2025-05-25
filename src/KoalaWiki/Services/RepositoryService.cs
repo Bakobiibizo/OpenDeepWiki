@@ -175,9 +175,11 @@ public class RepositoryService(
                             x.Name == repositoryName)
                 .FirstOrDefaultAsync();
 
+            // Allow overwriting existing repositories
             if (branch != null)
             {
-                throw new Exception("该分支已经存在");
+                // Instead of throwing an error, log that we're overwriting an existing repository
+                Console.WriteLine($"Repository already exists: {organization}/{repositoryName}/{createDto.Branch} - Will be overwritten.");
             }
         }
 
