@@ -183,7 +183,7 @@ public class RepositoryService(
             }
         }
 
-        // 删除旧的仓库（如果存在）
+        // Delete old repository (if it exists)
         await dbContext.Warehouses
             .Where(x => x.OrganizationName == organization &&
                         x.Name == repositoryName &&

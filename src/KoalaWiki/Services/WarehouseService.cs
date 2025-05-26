@@ -34,12 +34,12 @@ public class WarehouseService(IKoalaWikiContext access, IMapper mapper, GitRepos
     }
 
     /// <summary>
-    /// 查询上次提交的仓库
+    /// Query the last submitted repository
     /// </summary>
     /// <returns></returns>
     public async Task<object> GetLastWarehouseAsync(string address)
     {
-        // 判断是否.git结束，如果不是需要添加
+        // Check if the address ends with .git, add it if not
         if (!address.EndsWith(".git"))
         {
             address += ".git";
@@ -50,10 +50,10 @@ public class WarehouseService(IKoalaWikiContext access, IMapper mapper, GitRepos
             .Where(x => x.Address == address)
             .FirstOrDefaultAsync();
 
-        // 如果没有找到仓库，返回空列表
+        // If repository not found, return an empty object instead of throwing an exception
         if (query == null)
         {
-            throw new NotFoundException("仓库不存在");
+            return new { Status = "NotFound", Message = "Repository does not exist" };
         }
 
         return new

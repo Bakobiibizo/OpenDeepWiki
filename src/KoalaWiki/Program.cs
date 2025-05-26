@@ -1,8 +1,10 @@
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure Serilog to use settings from appsettings.json
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Information()
-    .WriteTo.Console()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}")
     .CreateLogger();
 
 #region Options

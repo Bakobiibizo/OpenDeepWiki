@@ -3,7 +3,7 @@ services:
     container_name: koalawiki
     image: crpi-j9ha7sxwhatgtvj4.cn-shenzhen.personal.cr.aliyuncs.com/koala-ai/koala-wiki
     environment:
-      - KOALAWIKI_REPOSITORIES=${KOALAWIKI_REPOSITORIES}
+      - KOALAWIKI_REPOS=${KOALAWIKI_REPOS}
       - TASK_MAX_SIZE_PER_USER=${TASK_MAX_SIZE_PER_USER}
       - REPAIR_MERMAID=${REPAIR_MERMAID}
       - CHAT_MODEL=${CHAT_MODEL}
@@ -31,6 +31,7 @@ services:
     image: crpi-j9ha7sxwhatgtvj4.cn-shenzhen.personal.cr.aliyuncs.com/koala-ai/koala-wiki-web
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - API_URL=http://koalawiki:8090
     volumes:
       - ./web/.env:/app/.env
     build:

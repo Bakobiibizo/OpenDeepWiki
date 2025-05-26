@@ -307,6 +307,24 @@ export async function documentCatalog(organizationName: string, name: string, br
 }
 
 /**
+ * Fetch document file items (actual content) for a repository
+ * This function can be used in client components
+ */
+export async function getDocumentFileItems(organizationName: string, name: string, branch?: string): Promise<any> {
+  // Build URL with query parameters
+  let url = API_URL + '/api/DocumentCatalog/DocumentFileItems?organizationName=' + organizationName + '&name=' + name;
+  if (branch) {
+    url += '&branch=' + branch;
+  }
+  
+  // @ts-ignore
+  return fetchApi<any>(url, {
+    method: 'GET',
+    cache: 'no-store'
+  });
+}
+
+/**
  * 根据ID获取文档
  * 此函数可在服务器组件中使用
  */

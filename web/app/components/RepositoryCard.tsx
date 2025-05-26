@@ -7,8 +7,10 @@ import {
   StarOutlined,
   ForkOutlined,
   EyeOutlined,
+  BookOutlined,
 } from '@ant-design/icons';
-import { Card, Tag, Tooltip, Avatar, Typography, Space } from 'antd';
+import { Card, Tag, Tooltip, Avatar, Typography, Space, Button } from 'antd';
+import Link from 'next/link';
 import { useTranslation } from '../i18n/client';
 
 const { Text, Title } = Typography;
@@ -18,12 +20,37 @@ interface RepositoryCardProps {
 }
 
 const RepositoryCard: React.FC<RepositoryCardProps> = ({ repository }) => {
+  // Add debugging to see what repository data we're receiving
+  console.log('RepositoryCard received repository:', repository);
 
   const { t, i18n } = useTranslation();
   const currentLocale = i18n.language;
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  
+  // Extract repository name from address if name is missing
+  const getRepositoryName = () => {
+    if (repository.name) return repository.name;
+    
+    if (repository.address) {
+      try {
+        // Extract repo name from GitHub URL: https://github.com/username/repo-name
+        const urlParts = repository.address.split('/');
+        return urlParts[urlParts.length - 1].replace('.git', '');
+      } catch (e) {
+        return 'Unknown Repository';
+      }
+    }
+    
+    return 'Unknown Repository';
+  };
+  
+  // Get repository status with fallback
+  const getRepositoryStatus = () => {
+    if (repository.status !== undefined) return repository.status;
+    return 0; // Default to pending
+  };
 
   // 鼠标移动事件处理
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -82,10 +109,13 @@ const RepositoryCard: React.FC<RepositoryCardProps> = ({ repository }) => {
   };
 
   // 获取状态配置
-  const getStatusConfig = (status: string | number) => {
-    const statusNumber = getStatusNumber(status);
+  const statusConfig = useMemo(() => {
+    let status = getRepositoryStatus();
+    if (typeof status === 'string') {
+      status = parseInt(status, 10);
+    }
 
-    switch (statusNumber) {
+    switch (status) {
       case 0: return { color: 'orange', text: t('repository.status.pending', '待处理') };
       case 1: return { color: 'blue', text: t('repository.status.processing', '处理中') };
       case 2: return { color: 'green', text: t('repository.status.completed', '已完成') };
@@ -94,7 +124,7 @@ const RepositoryCard: React.FC<RepositoryCardProps> = ({ repository }) => {
       case 99: return { color: 'red', text: t('repository.status.failed', '已失败') };
       default: return { color: 'default', text: t('repository.status.unknown', '未知状态') };
     }
-  };
+  }, [repository, t]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -123,7 +153,7 @@ const RepositoryCard: React.FC<RepositoryCardProps> = ({ repository }) => {
     return num.toString();
   };
 
-  const statusConfig = getStatusConfig(repository.status);
+  // We're now using the statusConfig from the useMemo above
 
   const handleCardClick = () => {
     window.location.href = `/${repository.organizationName}/${repository.name}`;
@@ -419,8 +449,8 @@ const RepositoryCard: React.FC<RepositoryCardProps> = ({ repository }) => {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-2">
-                    <Title level={5} className="m-0 text-slate-800 truncate font-semibold" title={repository.name}>
-                      {repository.name}
+                    <Title level={5} className="m-0 text-slate-800 truncate font-semibold" title={getRepositoryName()}>
+                      {getRepositoryName()}
                     </Title>
                     <div className="text-lg">
                       {getRepoIcon()}
@@ -448,6 +478,22 @@ const RepositoryCard: React.FC<RepositoryCardProps> = ({ repository }) => {
                   {repository.description || '暂无描述'}
                 </Text>
               </div>
+              
+              {/* Add View Wiki button for completed repositories */}
+              {getRepositoryStatus() === 2 && (
+                <div className="mt-4 flex justify-center">
+                  <Link href={`/wiki?address=${encodeURIComponent(repository.address)}`} passHref>
+                    <Button 
+                      type="primary" 
+                      icon={<BookOutlined />} 
+                      size="middle"
+                      className="w-full"
+                    >
+                      {t('repository.view_wiki', 'View Wiki')}
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </div>
 
             {/* 卡片底部 */}

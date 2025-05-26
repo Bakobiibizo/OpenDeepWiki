@@ -18,6 +18,7 @@ import {
 import RepositoryForm from './RepositoryForm';
 import RepositoryList from './RepositoryList';
 import LastRepoModal from './LastRepoModal';
+import ProcessingIndicator from './ProcessingIndicator';
 import LanguageSwitcher from './LanguageSwitcher';
 import { Repository, RepositoryFormValues } from '../types';
 import { submitWarehouse } from '../services/warehouseService';
@@ -242,16 +243,108 @@ interface HomeClientProps {
 }
 
 export default function HomeClient({ initialRepositories, initialTotal, initialPage, initialPageSize, initialSearchValue }: HomeClientProps) {
-  const repositories = initialRepositories;
+  // State for repositories
+  const [repositories, setRepositories] = useState<Repository[]>(initialRepositories);
+  const [total, setTotal] = useState<number>(initialTotal);
   const [formVisible, setFormVisible] = useState(false);
   const [lastRepoModalVisible, setLastRepoModalVisible] = useState(false);
   const [searchValue, setSearchValue] = useState<string>(initialSearchValue);
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [pageSize, setPageSize] = useState(initialPageSize);
   const [isMobile, setIsMobile] = useState(false);
+  
+  // Repository processing state
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStep, setProcessingStep] = useState<'cloning' | 'analyzing' | 'generating' | 'completed'>('cloning');
+  const [processingRepoAddress, setProcessingRepoAddress] = useState<string>('');
+  const [processingRepo, setProcessingRepo] = useState<Repository | null>(null);
 
   const searchParams = useSearchParams();
   const { t, i18n } = useTranslation();
+
+  // Function to fetch the latest repositories
+  const fetchRepositories = async () => {
+    try {
+      const response = await fetch(`/api/Warehouse/WarehouseList?page=${currentPage}&pageSize=${pageSize}&keyword=${encodeURIComponent(searchValue)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Fetched repositories data:', data);
+      
+      // Based on the screenshot, we're getting an array in the items property
+      // Let's directly use this array
+      if (Array.isArray(data.items)) {
+        console.log('Using array from data.items:', data.items);
+        setRepositories(data.items);
+        setTotal(data.items.length);
+      } else {
+        console.log('Could not find expected array in data.items, data structure:', data);
+        // Try to find any array in the response
+        let foundArray = false;
+        
+        // Check if data itself is an array
+        if (Array.isArray(data)) {
+          console.log('Data itself is an array, using it directly:', data);
+          setRepositories(data);
+          setTotal(data.length);
+          foundArray = true;
+        } 
+        // Check common properties
+        else if (data.data) {
+          if (Array.isArray(data.data)) {
+            console.log('Using array from data.data:', data.data);
+            setRepositories(data.data);
+            setTotal(data.data.length);
+            foundArray = true;
+          } else if (data.data.items && Array.isArray(data.data.items)) {
+            console.log('Using array from data.data.items:', data.data.items);
+            setRepositories(data.data.items);
+            setTotal(data.data.items.length);
+            foundArray = true;
+          }
+        }
+        
+        // Last resort: search for any array in the response
+        if (!foundArray) {
+          console.log('Searching for any array in the response');
+          for (const key in data) {
+            if (Array.isArray(data[key])) {
+              console.log(`Found array in property '${key}':`, data[key]);
+              setRepositories(data[key]);
+              setTotal(data[key].length);
+              break;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching repositories:', error);
+    }
+  };
+
+  // Fetch repositories when component mounts and periodically
+  useEffect(() => {
+    // Initial fetch
+    fetchRepositories();
+    
+    // Set up periodic refresh (every 10 seconds)
+    const refreshInterval = setInterval(() => {
+      fetchRepositories();
+    }, 10000);
+    
+    // Clean up interval on unmount
+    return () => clearInterval(refreshInterval);
+  }, [currentPage, pageSize, searchValue]);
 
   // 监听URL参数变化，更新i18n语言
   useEffect(() => {
@@ -276,17 +369,102 @@ export default function HomeClient({ initialRepositories, initialTotal, initialP
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Function to check repository status
+  const checkRepositoryStatus = async (repoAddress: string) => {
+    try {
+      // Use the same origin to avoid CORS issues
+      const response = await fetch(`/api/Warehouse/LastWarehouse?address=${encodeURIComponent(repoAddress)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Repository status data:', data);
+      
+      return data;
+    } catch (error) {
+      console.error('Error checking repository status:', error);
+      return null;
+    }
+  };
+
+  // Function to handle repository submission with status checking
   const handleAddRepository = async (values: RepositoryFormValues) => {
     try {
+      // Show processing indicator
+      setIsProcessing(true);
+      setProcessingStep('cloning');
+      setProcessingRepoAddress(values.address);
+      
       const response = await submitWarehouse(values);
+      
       if (response.success) {
-        message.success(t('home.messages.repo_add_success'));
-        window.location.reload();
+        // Start polling for status updates
+        let statusInterval = setInterval(async () => {
+          const status = await checkRepositoryStatus(values.address);
+          
+          if (status) {
+            // Update processing status based on backend status
+            if (status.status === 0) {
+              setProcessingStep('cloning');
+            } else if (status.status === 1) {
+              setProcessingStep('analyzing');
+            } else if (status.status === 2) {
+              setProcessingStep('completed');
+              
+              // Stop checking and show success message
+              clearInterval(statusInterval);
+              
+              setTimeout(() => {
+                message.success(t('home.messages.repo_add_success'));
+                // Fetch repositories instead of reloading the page
+                fetchRepositories();
+                setIsProcessing(false);
+              }, 1500);
+            } else if (status.status === 99) {
+              // Failed
+              clearInterval(statusInterval);
+              setIsProcessing(false);
+              message.error(t('home.messages.repo_add_failed', { error: status.error || t('home.messages.unknown_error') }));
+            }
+          } else {
+            // If we can't get status, simulate progress
+            // This ensures a good UX even if the backend status check fails
+            if (processingStep === 'cloning') {
+              setTimeout(() => setProcessingStep('analyzing'), 5000);
+            } else if (processingStep === 'analyzing') {
+              setTimeout(() => setProcessingStep('generating'), 5000);
+            } else if (processingStep === 'generating') {
+              setTimeout(() => {
+                setProcessingStep('completed');
+                clearInterval(statusInterval);
+                
+                setTimeout(() => {
+                  message.success(t('home.messages.repo_add_success'));
+                  // Fetch repositories instead of reloading the page
+                  fetchRepositories();
+                  setIsProcessing(false);
+                }, 1500);
+              }, 5000);
+            }
+          }
+        }, 3000);
+        
       } else {
+        setIsProcessing(false);
         message.error(t('home.messages.repo_add_failed', { error: response.error || t('home.messages.unknown_error') }));
       }
     } catch (error) {
       console.error('添加仓库出错:', error);
+      setIsProcessing(false);
       message.error(t('home.messages.repo_add_error'));
     }
     setFormVisible(false);
@@ -296,17 +474,12 @@ export default function HomeClient({ initialRepositories, initialTotal, initialP
     setLastRepoModalVisible(true);
   };
 
-  const handlePageChange = (page: number, size?: number) => {
-    setCurrentPage(page);
-    if (size) setPageSize(size);
-    window.location.href = `/?page=${page}&pageSize=${size || pageSize}&keyword=${searchValue}`;
-  };
-
   const handleSearch = (value: string) => {
     setSearchValue(value);
     setCurrentPage(1);
-    setPageSize(initialPageSize);
-    window.location.href = `/?page=${1}&pageSize=${initialPageSize}&keyword=${value}`;
+    // Keep the current page size
+    // Fetch repositories with the new search value
+    setTimeout(() => fetchRepositories(), 0);
   };
 
   // 计算统计数据
@@ -686,14 +859,30 @@ export default function HomeClient({ initialRepositories, initialTotal, initialP
                 </div>
               ) : (
                 <>
+                  {/* Add debugging component to show raw data */}
+                  <div style={{ marginBottom: '20px', padding: '15px', border: '1px solid #eee', borderRadius: '8px', background: '#f9f9f9' }}>
+                    <h3>Debug: Repository Data</h3>
+                    <p>Repositories count: {repositories.length}</p>
+                    <div style={{ maxHeight: '300px', overflow: 'auto' }}>
+                      <pre style={{ fontSize: '12px' }}>{JSON.stringify(repositories, null, 2)}</pre>
+                    </div>
+                  </div>
+                  
                   <RepositoryList repositories={repositories} />
-                  {!searchValue && initialTotal > pageSize && (
+                  {total > pageSize && (
                     <div className="text-center mt-8 pt-6 border-t border-slate-100">
                       <Pagination
                         current={currentPage}
                         pageSize={pageSize}
-                        total={initialTotal}
-                        onChange={handlePageChange}
+                        total={total}
+                        onChange={(page, size) => {
+                          setCurrentPage(page);
+                          if (size !== pageSize) {
+                            setPageSize(size);
+                          }
+                          // Fetch repositories with new pagination
+                          fetchRepositories();
+                        }}
                         showSizeChanger
                         showQuickJumper
                         showTotal={(total) => t('home.pagination.total', { total })}
@@ -715,6 +904,16 @@ export default function HomeClient({ initialRepositories, initialTotal, initialP
               open={lastRepoModalVisible}
               onCancel={() => setLastRepoModalVisible(false)}
             />
+            
+            {/* Processing indicator for repository submission */}
+            {isProcessing && (
+              <ProcessingIndicator 
+                visible={isProcessing} 
+                step={processingStep}
+                repoAddress={processingRepoAddress}
+                repoStatus={processingRepo?.status}
+              />
+            )}
           </div>
         </Content>
 

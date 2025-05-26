@@ -24,6 +24,7 @@
 - **Dialogic Interaction:** Supports dialogic interaction with AI to obtain detailed information and usage methods of the code, and to deeply understand the code.
 
 Feature list:
+
 - [x] Supports multiple code repositories (Github, Gitlab, Gitee, Gitea, etc.)
 - [x] Supports multiple programming languages (Python, Java, C#, JavaScript, etc.)
 - [x] Supports repository management, providing functions for adding, deleting, modifying, and querying repositories
@@ -41,37 +42,40 @@ Feature list:
 # Project Introduction
 
 OpenDeepWiki is an open-source project inspired by [DeepWiki](https://deepwiki.com/), developed using .NET 9 and Semantic Kernel. It aims to help developers better understand and utilize codebases by providing features such as code analysis, documentation generation, and knowledge graph creation.
+
 - Analyze code structure
 - Understand core concepts of repositories
 - Generate code documentation
 - Automatically create README.md for code
   MCP Support
 
-
 OpenDeepWiki supports MCP (Model Context Protocol)
+
 - Supports providing an MCPServer for a single repository and conducting analysis on a single repository.
 
-Usage: The following is the usage of cursor: 
+Usage: The following is the usage of cursor:
+
 ```json
 {
   "mcpServers": {
-    "OpenDeepWiki":{
+    "OpenDeepWiki": {
       "url": "http://Your OpenDeepWiki service IP:port/sse?owner=AIDotNet&name=OpenDeepWiki"
     }
   }
 }
 ```
+
 - owner: It is the name of the organization or owner of the repository.
-- name: It is the name of the repository. 
+- name: It is the name of the repository.
 
 After adding the repository, test by asking a question (please note that before doing this, the repository must be processed first): What is OpenDeepWiki? The effect is as shown in the picture: ! [](img/mcp.png)
-
 
 In this way, you can use OpenDeepWiki as an MCPServer, making it available for other AI models to call upon, facilitating the analysis and understanding of an open-source project.
 
 ## 🚀 Quick Start
 
 1. Clone the repository
+
 ```bash
 git clone https://github.com/AIDotNet/OpenDeepWiki.git
 cd OpenDeepWiki
@@ -80,11 +84,12 @@ cd OpenDeepWiki
 2. Open the `docker-compose.yml` file and modify the following environment variables:
 
 OpenAI:
+
 ```yaml
 services:
   koalawiki:
     environment:
-      - KOALAWIKI_REPOSITORIES=/repositories
+      - KOALAWIKI_REPOS=/repositories
       - TASK_MAX_SIZE_PER_USER=5 # Maximum number of parallel document generation tasks per user by AI
       - CHAT_MODEL=DeepSeek-V3 # Model must support functions
       - ANALYSIS_MODEL= # Analysis model used for generating repository directory structure
@@ -98,15 +103,16 @@ services:
       - UPDATE_INTERVAL # Warehouse increment update interval, unit: days
       - MAX_FILE_LIMIT=100 # The maximum limit for uploading files, in MB
       - DEEP_RESEARCH_MODEL= # Conduct in-depth research on the model and use CHAT_MODEL for the empty
-      - ENABLE_INCREMENTAL_UPDATE=true # Whether to enable incremental updates 
+      - ENABLE_INCREMENTAL_UPDATE=true # Whether to enable incremental updates
 ```
 
 AzureOpenAI:
+
 ```yaml
 services:
   koalawiki:
     environment:
-      - KOALAWIKI_REPOSITORIES=/repositories
+      - KOALAWIKI_REPOS=/repositories
       - TASK_MAX_SIZE_PER_USER=5 # Maximum number of parallel document generation tasks per user by AI
       - CHAT_MODEL=DeepSeek-V3 # Model must support functions
       - ANALYSIS_MODEL= # Analysis model used for generating repository directory structure
@@ -124,11 +130,12 @@ services:
 ```
 
 Anthropic:
+
 ```yaml
 services:
   koalawiki:
     environment:
-      - KOALAWIKI_REPOSITORIES=/repositories
+      - KOALAWIKI_REPOS=/repositories
       - TASK_MAX_SIZE_PER_USER=5 # Maximum number of parallel document generation tasks per user by AI
       - CHAT_MODEL=DeepSeek-V3 # Model must support functions
       - ANALYSIS_MODEL= # Analysis model used for generating repository directory structure
@@ -146,6 +153,7 @@ services:
 ```
 
 > 💡 **How to get an API Key:**
+>
 > - Get Google API key [Google AI Studio](https://makersuite.google.com/app/apikey)
 > - Get OpenAI API key [OpenAI Platform](https://platform.openai.com/api-keys)
 > - Get CoresHub [CoresHub](https://console.coreshub.cn/xb3/maas/global-keys) [Click here for 50 million free tokens](https://account.coreshub.cn/signup?invite=ZmpMQlZxYVU=)
@@ -169,6 +177,7 @@ make dev
 Then visit http://localhost:8090 to access the knowledge base.
 
 For more commands:
+
 ```bash
 make help
 ```
@@ -211,13 +220,14 @@ docker-compose build --build-arg ARCH=amd64
 ## 🔍 How It Works
 
 OpenDeepWiki uses AI to:
- - Clone code repository locally
- - Analyze based on repository README.md
- - Analyze code structure and read code files as needed, then generate directory json data
- - Process tasks according to directory, each task is a document
- - Read code files, analyze code files, generate code documentation, and create Mermaid charts representing code structure dependencies
- - Generate the final knowledge base document
- - Analyze repository through conversational interaction and respond to user inquiries
+
+- Clone code repository locally
+- Analyze based on repository README.md
+- Analyze code structure and read code files as needed, then generate directory json data
+- Process tasks according to directory, each task is a document
+- Read code files, analyze code files, generate code documentation, and create Mermaid charts representing code structure dependencies
+- Generate the final knowledge base document
+- Analyze repository through conversational interaction and respond to user inquiries
 
 ```mermaid
 graph TD
@@ -232,26 +242,29 @@ graph TD
     I --> J[Generate knowledge base document]
     J --> K[Conversational interaction]
 ```
+
 ## Advanced Configuration
 
 ### Environment Variables
-  - KOALAWIKI_REPOSITORIES  Path for storing repositories
-  - TASK_MAX_SIZE_PER_USER  Maximum parallel tasks for AI document generation per user
-  - CHAT_MODEL  Model must support functions
-  - ENDPOINT  API Endpoint
-  - ANALYSIS_MODEL  Analysis model for generating repository directory structure
-  - CHAT_API_KEY  Your API key
-  - LANGUAGE  Change the language of the generated documents
-  - DB_TYPE  Database type, default is sqlite
-  - MODEL_PROVIDER  Model provider, by default OpenAI, supports Azure, OpenAI and Anthropic
-  - DB_CONNECTION_STRING  Database connection string
-  - EnableSmartFilter Whether intelligent filtering is enabled or not may affect how the AI can obtain the file directory of the repository
-  - UPDATE_INTERVAL Warehouse increment update interval, unit: days
-  - MAX_FILE_LIMIT The maximum limit for uploading files, in MB
-  - DEEP_RESEARCH_MODEL Conduct in-depth research on the model and use CHAT_MODEL for the empty
-  - ENABLE_INCREMENTAL_UPDATE Whether to enable incremental updates
+
+- KOALAWIKI_REPOS Path for storing repositories
+- TASK_MAX_SIZE_PER_USER Maximum parallel tasks for AI document generation per user
+- CHAT_MODEL Model must support functions
+- ENDPOINT API Endpoint
+- ANALYSIS_MODEL Analysis model for generating repository directory structure
+- CHAT_API_KEY Your API key
+- LANGUAGE Change the language of the generated documents
+- DB_TYPE Database type, default is sqlite
+- MODEL_PROVIDER Model provider, by default OpenAI, supports Azure, OpenAI and Anthropic
+- DB_CONNECTION_STRING Database connection string
+- EnableSmartFilter Whether intelligent filtering is enabled or not may affect how the AI can obtain the file directory of the repository
+- UPDATE_INTERVAL Warehouse increment update interval, unit: days
+- MAX_FILE_LIMIT The maximum limit for uploading files, in MB
+- DEEP_RESEARCH_MODEL Conduct in-depth research on the model and use CHAT_MODEL for the empty
+- ENABLE_INCREMENTAL_UPDATE Whether to enable incremental updates
 
 ### Build for Different Architectures
+
 The Makefile provides commands to build for different CPU architectures:
 
 ```bash
@@ -268,10 +281,12 @@ make build-backend-arm
 make build-frontend-amd
 ```
 
-## WeChat 
+## WeChat
+
 ![0fff53b3927a3088483d50f821b80815](https://github.com/user-attachments/assets/c0b6c199-0001-40ee-8a72-a128b45c4fa3)
 
 ## 📄 License
+
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
 ## Star History

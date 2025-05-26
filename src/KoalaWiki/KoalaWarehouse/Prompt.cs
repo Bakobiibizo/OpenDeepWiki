@@ -1,4 +1,4 @@
-﻿using KoalaWiki.Extensions;
+using KoalaWiki.Extensions;
 
 namespace KoalaWiki.KoalaWarehouse;
 
@@ -402,13 +402,13 @@ After completing the analysis, summarize the main findings of each step and cond
               "title": "section-identifier",
               "name": "Section Name",
               "dependent_file": ["path/to/relevant/file1.ext", "path/to/relevant/file2.ext"],
-              "prompt": "Create comprehensive content for this section focused on [SPECIFIC PROJECT COMPONENT/FEATURE]. Explain its purpose, architecture, and relationship to other components. Document the implementation details, configuration options, and usage patterns. Include both conceptual overviews for beginners and technical details for experienced developers. Use terminology consistent with the codebase. Provide practical examples demonstrating common use cases. Document public interfaces, parameters, and return values. Include diagrams where appropriate to illustrate key concepts.",
+              "prompt": "Create extremely detailed and comprehensive content (minimum 1000 words) for this section focused on [SPECIFIC PROJECT COMPONENT/FEATURE]. Your documentation must include ALL of the following elements in depth:\n\n1. OVERVIEW (200+ words): Provide a thorough conceptual overview explaining the purpose, significance, and core functionality of this component.\n\n2. ARCHITECTURE (200+ words): Detail the internal architecture, design patterns used, and how this component fits into the larger system. Explain all key classes, interfaces, and their relationships.\n\n3. IMPLEMENTATION DETAILS (300+ words): Document the specific implementation details, algorithms, data structures, and techniques used. Include explanations of any complex logic or optimizations.\n\n4. CODE EXAMPLES (multiple examples): Provide at least 3 detailed code examples showing common usage patterns. Include both simple and advanced examples with line-by-line explanations.\n\n5. CONFIGURATION (200+ words): Document all configuration options, parameters, environment variables, and settings. Include default values, valid ranges, and the impact of each setting.\n\n6. API REFERENCE (comprehensive): Detail all public methods, functions, and interfaces. For each, document parameters, return values, exceptions, and side effects.\n\n7. TROUBLESHOOTING (200+ words): Include a troubleshooting guide covering common issues, error messages, and their solutions.\n\n8. BEST PRACTICES (200+ words): Provide detailed best practices, optimization tips, and usage recommendations.\n\nEnsure your content is technically accurate, deeply informative, and structured for both beginners and experienced developers. Use terminology consistent with the codebase and provide substantial content that thoroughly explains every aspect of this component.",
               "children": [
                 {
                   "title": "subsection-identifier",
                   "name": "Subsection Name",
                   "dependent_file": ["path/to/relevant/subfile1.ext", "path/to/relevant/subfile2.ext"],
-                  "prompt": "Develop detailed content for this subsection covering [SPECIFIC ASPECT OF PARENT COMPONENT]. Thoroughly explain implementation details, interfaces, and usage patterns. Include concrete examples from the actual codebase. Document configuration options, parameters, and return values. Explain relationships with other components. Address common issues and their solutions. Make content accessible to beginners while providing sufficient technical depth for experienced developers."
+                  "prompt": "Develop extremely detailed and comprehensive content (minimum 800 words) for this subsection covering [SPECIFIC ASPECT OF PARENT COMPONENT]. Your documentation must include ALL of the following elements in depth:\n\n1. DETAILED EXPLANATION (200+ words): Provide a thorough explanation of this specific aspect, including its purpose, functionality, and importance within the parent component.\n\n2. IMPLEMENTATION DETAILS (200+ words): Document the specific implementation details, including code structure, algorithms, and techniques used. Explain any complex logic or optimizations.\n\n3. CODE EXAMPLES (multiple examples): Provide at least 2 detailed code examples showing how to use this specific aspect. Include line-by-line explanations of each example.\n\n4. INTERFACES & PARAMETERS (comprehensive): Document all interfaces, methods, parameters, and return values related to this aspect. Include type information, validation rules, and constraints.\n\n5. CONFIGURATION (150+ words): Detail all configuration options specific to this aspect, including default values and the impact of each setting.\n\n6. INTEGRATION (150+ words): Explain how this aspect integrates with other components and subsystems. Document any dependencies or requirements.\n\n7. TROUBLESHOOTING (150+ words): Include specific troubleshooting guidance for issues related to this aspect, including error messages and solutions.\n\n8. ADVANCED USAGE (150+ words): Provide advanced usage patterns, optimization techniques, and best practices specific to this aspect.\n\nEnsure your content is technically accurate, deeply informative, and structured for both beginners and experienced developers. Use terminology consistent with the codebase and provide substantial content that thoroughly explains every detail of this specific aspect."
                 }
               ]
             }
@@ -448,7 +448,25 @@ After completing the analysis, summarize the main findings of each step and cond
         {{catalogue}}
         </repository_catalogue>
 
-        Your task is to create a detailed software documentation document that addresses the documentation objective and matches the document title. The document should be comprehensive, clearly explaining the codebase's architecture, functionality, and key components. Ensure that your analysis is thorough and that you provide ample content for each section, with particular emphasis on code-related explanations.
+        Your task is to create an extremely detailed and comprehensive software documentation document that addresses the documentation objective and matches the document title. Follow these specific guidelines:
+
+        1. CONTENT DEPTH: Each section must contain at least 500-1000 words of detailed content. Do not generate placeholder text or brief summaries - provide substantial, in-depth explanations with specific details from the codebase.
+
+        2. CODE EXAMPLES: Include multiple code snippets and examples for each major concept. Show both basic usage patterns and advanced implementation techniques. Explain each line of code in detail.
+
+        3. TECHNICAL SPECIFICATIONS: Document all parameters, return values, exceptions, and edge cases for each component. Include type information, validation rules, and constraints.
+
+        4. ARCHITECTURE DIAGRAMS: Describe component relationships and data flows in detail. Explain the design patterns used and their implementation in the codebase.
+
+        5. TUTORIALS: Include step-by-step tutorials for common tasks, with detailed explanations of each step and expected outcomes.
+
+        6. TROUBLESHOOTING: Provide comprehensive troubleshooting guides for common issues, including error messages, possible causes, and detailed resolution steps.
+
+        7. API DOCUMENTATION: Document all public APIs with complete parameter descriptions, return values, authentication requirements, and example requests/responses.
+
+        8. CONFIGURATION: Detail all configuration options, their default values, acceptable ranges, and impacts on system behavior.
+
+        Remember that this documentation will be the primary reference for users of this codebase. It must be comprehensive enough that users can understand and use the software without needing to read the source code. Generate substantial, detailed content for every section - brevity is NOT a virtue in this task.
 
         Follow these steps to create your documentation:
 

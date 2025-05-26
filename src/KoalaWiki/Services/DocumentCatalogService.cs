@@ -1,4 +1,4 @@
-﻿using FastService;
+using FastService;
 using KoalaWiki.Core.DataAccess;
 using KoalaWiki.Domains;
 using KoalaWiki.Entities;
@@ -156,6 +156,50 @@ public class DocumentCatalogService(IKoalaWikiContext dbAccess) : FastApi
             Console.WriteLine($"更新目录失败: {ex.Message}");
             return false;
         }
+    }
+
+    /// <summary>
+    /// Get document file items for a repository
+    /// </summary>
+    /// <param name="organizationName">Organization or user name</param>
+    /// <param name="name">Repository name</param>
+    /// <param name="branch">Optional branch name</param>
+    /// <returns>List of document file items with their content</returns>
+    public async Task<object> GetDocumentFileItemsAsync(string organizationName, string name, string? branch)
+    {
+        var warehouse = await dbAccess.Warehouses
+            .AsNoTracking()
+            .Where(x => x.Name == name && x.OrganizationName == organizationName &&
+                        (string.IsNullOrEmpty(branch) || x.Branch == branch))
+            .FirstOrDefaultAsync();
+
+        // If repository not found, return empty result
+        if (warehouse == null)
+        {
+            return new { success = false, message = $"Repository not found: {organizationName}/{name}" };
+        }
+
+        // Get all document catalogs for this repository
+        var documentCatalogs = await dbAccess.DocumentCatalogs
+            .Where(x => x.WarehouseId == warehouse.Id && x.IsDeleted == false)
+            .Select(x => x.Id)
+            .ToListAsync();
+
+        // Get all document file items for these catalogs
+        var fileItems = await dbAccess.DocumentFileItems
+            .AsNoTracking()
+            .Where(x => documentCatalogs.Contains(x.DocumentCatalogId))
+            .Select(x => new
+            {
+                x.Id,
+                x.DocumentCatalogId,
+                x.Title,
+                x.Content,
+                x.CreatedAt
+            })
+            .ToListAsync();
+
+        return new { success = true, data = fileItems };
     }
 
     /// <summary>

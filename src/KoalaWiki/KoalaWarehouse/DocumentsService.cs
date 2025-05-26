@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using KoalaWiki.Core.DataAccess;
@@ -359,14 +359,20 @@ public partial class DocumentsService
 
         if (warehouse.Type.Equals("git", StringComparison.CurrentCultureIgnoreCase))
         {
+            Log.Logger.Information("Processing Git repository: {RepoAddress}, Branch: {Branch}", warehouse.Address, warehouse.Branch);
+            
             await dbContext.DocumentCommitRecords.Where(x => x.WarehouseId == warehouse.Id)
                 .ExecuteDeleteAsync();
+            Log.Logger.Information("Deleted existing commit records for warehouse {WarehouseId}", warehouse.Id);
 
             // 开始生成
+            Log.Logger.Information("Starting to generate update log for repository {RepoAddress}", warehouse.Address);
             var committer = await GenerateUpdateLogAsync(document.GitPath, readme,
                 warehouse.Address,
                 warehouse.Branch,
                 kernel);
+            
+            Log.Logger.Information("Generated update log with {CommitCount} entries", committer?.Count ?? 0);
 
             var record = committer.Select(x => new DocumentCommitRecord()
             {
@@ -567,8 +573,14 @@ public partial class DocumentsService
         await foreach (var i in chat.GetStreamingChatMessageContentsAsync(history, new OpenAIPromptExecutionSettings()
                        {
                            ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
-                           MaxTokens = GetMaxTokens(OpenAIOptions.ChatModel),
-                           Temperature = 0.5,
+                           // Increase max tokens to allow for more detailed content generation
+                           MaxTokens = 8000,
+                           // Lower temperature for more focused and detailed output
+                           Temperature = 0.3,
+                           // Set top_p to prioritize higher probability tokens for more coherent output
+                           TopP = 0.85f,
+                           // Increase presence penalty to encourage more diverse content
+                           PresencePenalty = 0.2f,
                        }, kernel))
         {
             if (!string.IsNullOrEmpty(i.Content))
